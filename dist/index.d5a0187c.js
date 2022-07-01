@@ -565,6 +565,19 @@ class Box {
     }
 }
 class Prisoner {
+    constructor(number, simulation){
+        this.w = 30;
+        this.h = 30;
+        this.x = 0;
+        this.y = 300;
+        this.state = "searching";
+        this.count = 0;
+        this.simulation = simulation;
+        this.randomNumbers = simulation.shuffledNumbers();
+        this.target = simulation.mode === "loop" ? number : this.randomNumbers[0];
+        console.log(this.target);
+        this.number = number;
+    }
     draw() {
         let mainLayer = this.simulation.layers[1].context;
         let backLayer = this.simulation.layers[0].context;
@@ -602,11 +615,10 @@ class Prisoner {
                 if (targetBox.x === this.x && targetBox.y === this.y) {
                     this.count += 1;
                     if (targetBox.contains === this.number) this.state = "success";
-                    if (this.count > this.simulation.rows * this.simulation.columns / 2) {
-                        console.log("should fail");
-                        this.state = "failed";
-                    }
-                    this.target = targetBox.contains;
+                    if (this.count > this.simulation.rows * this.simulation.columns / 2) this.state = "failed";
+                    this.randomNumbers.splice(this.randomNumbers.indexOf(this.target), 1);
+                    if (this.simulation.mode === "loop") this.target = targetBox.contains;
+                    else this.target = this.randomNumbers[0];
                 }
                 if (targetBox.x > this.x) {
                     this.x += step;
@@ -626,17 +638,6 @@ class Prisoner {
                 }
             }
         }
-    }
-    constructor(number, simulation, target){
-        this.w = 30;
-        this.h = 30;
-        this.x = 0;
-        this.y = 300;
-        this.state = "searching";
-        this.count = 0;
-        this.simulation = simulation;
-        this.target = target;
-        this.number = number;
     }
 }
 class App {
@@ -665,32 +666,20 @@ class App {
         this.assignButton("randomButton", "randomButton");
         this.reset();
         this.loopButton.addEventListener("click", ()=>{
-            if (this.simulation.speed === 5) {
-                this.simulation.speed = 20;
-                this.slowButton.className = "active";
-                this.fastButton.className = "inactive";
-            }
+            this.simulation.mode = "loop";
+            this.resetButtons();
         });
-        this.fastButton.addEventListener("click", ()=>{
-            if (this.simulation.speed === 20) {
-                this.simulation.speed = 5;
-                this.slowButton.className = "inactive";
-                this.fastButton.className = "active";
-            }
+        this.randomButton.addEventListener("click", ()=>{
+            this.simulation.mode = "random";
+            this.resetButtons();
         });
         this.slowButton.addEventListener("click", ()=>{
-            if (this.simulation.speed === 5) {
-                this.simulation.speed = 20;
-                this.slowButton.className = "active";
-                this.fastButton.className = "inactive";
-            }
+            this.simulation.speed = 20;
+            this.resetButtons();
         });
         this.fastButton.addEventListener("click", ()=>{
-            if (this.simulation.speed === 20) {
-                this.simulation.speed = 5;
-                this.slowButton.className = "inactive";
-                this.fastButton.className = "active";
-            }
+            this.simulation.speed = 5;
+            this.resetButtons();
         });
         this.resetPrisoners.addEventListener("click", ()=>{
             this.layers[0].clear();
@@ -709,11 +698,11 @@ class App {
     resetButtons() {
         this.addPrisoner.innerText = `Add Prisoner (${this.simulation.prisoners.length}/${this.simulation.boxes.length})`;
         if (this.simulation.mode === "loop") {
-            this.slowButton.className = "inactive";
-            this.fastButton.className = "active";
+            this.loopButton.className = "active";
+            this.randomButton.className = "inactive";
         } else {
-            this.slowButton.className = "active";
-            this.fastButton.className = "inactive";
+            this.loopButton.className = "inactive";
+            this.randomButton.className = "active";
         }
         if (this.simulation.speed === 5) {
             this.slowButton.className = "inactive";
@@ -727,7 +716,7 @@ class App {
 class Simulation {
     constructor(layers, touchSurface, rows, columns){
         this.prisoners = [];
-        this.speed = 20;
+        this.speed = 5;
         this.shuttingDown = false;
         this.selected = -1;
         this.selectedOffset = {
@@ -735,6 +724,7 @@ class Simulation {
             y: 0
         };
         this.step = 4;
+        this.mode = "loop";
         this.rows = rows;
         this.columns = columns;
         this.layers = layers;
@@ -776,8 +766,16 @@ class Simulation {
         });
         this.main();
     }
+    shuffledNumbers() {
+        const templateArray = Array.from(Array(this.rows * this.columns)).map((item, index)=>index
+        );
+        const shuffled = shuffleArray([
+            ...templateArray
+        ]);
+        return shuffled;
+    }
     addPrisoner() {
-        if (this.prisoners.length < this.boxes.length) this.prisoners.push(new Prisoner(this.prisoners.length, this, this.prisoners.length));
+        if (this.prisoners.length < this.boxes.length) this.prisoners.push(new Prisoner(this.prisoners.length, this));
     }
     main() {
         this.tick();
