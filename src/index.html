@@ -71,8 +71,7 @@
       }
       .drag-blocks {
         position: absolute;
-        left: 50%;
-        transform: translateX(-50%);
+        left: 500px;
         font-size: 24px;
         top: 50px;
       }
@@ -97,6 +96,42 @@
         background-color: lightcoral;
         border-radius: 5px;
       }
+      #addPrisonerButton {
+        background-color: lightgreen;
+        padding: 10px;
+      }
+      #overlay {
+        display: none;
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        background-color: white;
+        opacity: .8;
+        z-index: 5;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        font-size: 18px;
+      }
+      .point-container {
+        position: relative;
+      }
+      .point {
+        position: absolute;
+        /* top: 10%; */
+        font-size: 60px;
+        top: -20px;
+        right: -10px;
+        transform: translateX(100%);
+      }
+      @media only screen and (max-width: 800px) {
+        #overlay {
+          display: flex;
+          flex-direction: column;
+        }
+      }
     </style>
   </head>
   <body>
@@ -108,7 +143,7 @@
           >The Riddle That Seems Impossible<br/>Even If You Know The Answer</a
         >
       </p>
-      <button id="addPrisonerButton">Add Prisoner (0/XX)</button>
+      <div  class="point-container"><button id="addPrisonerButton">Add Prisoner (0/XX)</button><span class="point">👈</span></div>
       <button id="resetPrisonersButton">Reset Prisoners</button>
       <div>
         <button id="slowButton">Slow</button>
@@ -137,6 +172,10 @@
     <canvas id="canvas-1"></canvas>
     <div class="drag-blocks">drag blocks to find the loops</div>
     <div id="touch-surface"></div>
+    <div id="overlay">
+      <div>Sorry! No time to make a mobile layout.</div>
+      <div>Come back on a desktop.</div>
+    </div>
     <script type="module" src="index.js"></script>
   </body>
 </html>
