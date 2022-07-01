@@ -25,9 +25,42 @@
         font-size: 13px;
         box-sizing: border-box;
         max-width: none !important;
+        display: flex;
+        justify-content: flex-start;
+        align-items: flex-start;
+      }
+      main {
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: flex-start;
+        z-index: 2;
+        padding: 10px;
+        border: 2px solid gray;
+        flex-grow: 0;
+        font-size: 14px;
+        overflow-y: scroll;
       }
       h1 {
-        padding: 16px;
+        padding: 0;
+        margin: 0;
+      }
+      button {
+        margin-bottom: 10px;
+      }
+      button.active {
+        background-color: aquamarine
+      }
+      #touch-surface {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
       }
       canvas {
         position: absolute;
@@ -36,12 +69,73 @@
         left: 0;
         right: 0;
       }
+      .drag-blocks {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 24px;
+        bottom: 50px;
+      }
+      .about {
+        line-height: 1.5;
+      }
+      .pink {
+        color: hotpink;
+      }
+      .yellow {
+        padding: 2px;
+        background-color: yellow;
+        border-radius: 5px;
+      }
+      .green {
+        padding: 2px;
+        background-color: limegreen;
+        border-radius: 5px;
+      }
+      .red {
+        padding: 2px;
+        background-color: lightcoral;
+        border-radius: 5px;
+      }
     
 </style>
   </head>
   <body>
-    <h1>Prison Riddle</h1>
-    <canvas id="canvas"></canvas>
+    <main>
+      <h1>Prison Riddle 🤯</h1>
+      <h2>The Loop Strategy</h2>
+      <p>
+        Based on Varitasium's Youtube video<br><a href="https://www.youtube.com/watch?v=iSNsgj1OCLA">The Riddle That Seems Impossible<br>Even If You Know The Answer</a>
+      </p>
+      <button id="addPrisonerButton">Add Prisoner (0/XX)</button>
+      <button id="resetPrisonersButton">Reset Prisoners</button>
+      <div>
+        <button id="slowButton">Slow</button>
+        <button id="fastButton">Fast</button>
+      <div>
+        <div>
+          <button id="randomButton">Random</button>
+          <button id="loopButton">Loop</button>
+        <div>
+      <button id="newGameButton">New Game</button>
+      <p class="about">
+        Best explanation is to watch the video above...<br>
+        TLDR:<br>
+        36 <span class="yellow">prisoners</span> search 36 boxes for a ticket (<span class="pink">pink number</span>)<br>
+        Every prisoner gets to look in 18 boxs (36 / 2)<br>
+        If all prisoners <span class="green">find their ticket</span>, they all go free.<br>
+        If any prisoners <span class="red">runs out of turns</span>, they all lose.<br>
+        Chance of success with random guessing = (1/2)^36<br>
+        which is.... 0.0000000015% 🎲<br>
+        Chance of success with loop strategy = 1 - (1/19 + 1/20 + ... + 1/36)<br>
+        which is.... ~32% 🤯🤯🤯<br>
+      </p>
+      <div><a href="https://twitter.com/AdamWatters">made by adamwatters</a></div>
+    </div></div></div></div></main>
+    <canvas id="canvas-0"></canvas>
+    <canvas id="canvas-1"></canvas>
+    <div class="drag-blocks">drag blocks to explore the loops</div>
+    <div id="touch-surface"></div>
     <script src="/index.d5a0187c.js" defer=""></script>
   </body>
 </html>

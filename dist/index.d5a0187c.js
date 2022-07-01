@@ -529,41 +529,292 @@ var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 var _canvas = require("./Canvas");
 var _canvasDefault = parcelHelpers.interopDefault(_canvas);
-var _appState = require("./AppState");
-var _appStateDefault = parcelHelpers.interopDefault(_appState);
-class Prisoner {
+var _touchSurface = require("./TouchSurface");
+var _touchSurfaceDefault = parcelHelpers.interopDefault(_touchSurface);
+class Box {
     draw() {
+        const { x , y , w , h  } = this;
+        this.context.beginPath();
+        this.context.rect(x, y, w, h);
+        this.context.lineWidth = 10;
+        this.context.stroke();
+        this.context.fillStyle = "tan";
+        this.context.fill();
+        this.context.closePath();
+        this.context.font = "26px serif";
+        this.context.fillStyle = "black";
+        this.context.textAlign = "center";
+        this.context.textBaseline = "middle";
+        this.context.fillText(this.number.toString(), x + w / 2, y + h / 2);
+        this.context.font = "20px sans-serif";
+        this.context.fillStyle = "hotpink";
+        this.context.textAlign = "center";
+        this.context.textBaseline = "middle";
+        this.context.fillText(this.contains.toString(), x + w / 2, y - 15);
     }
     update() {
     }
-    constructor(context){
+    constructor(context, number, contains, x, y){
+        this.w = 40;
+        this.h = 40;
+        this.x = x;
+        this.y = y;
+        this.number = number;
+        this.contains = contains;
         this.context = context;
     }
 }
+class Prisoner {
+    draw() {
+        let mainLayer = this.simulation.layers[1].context;
+        let backLayer = this.simulation.layers[0].context;
+        const { x , y , w , h  } = this;
+        if (this.target !== this.number) {
+            backLayer.beginPath();
+            backLayer.arc(x, y, w / 3, 0, 2 * Math.PI);
+            backLayer.fillStyle = "rgba(0,0,255,.01)";
+            backLayer.fill();
+        }
+        backLayer.closePath();
+        mainLayer.beginPath();
+        mainLayer.arc(x, y, w / 2, 0, 2 * Math.PI);
+        mainLayer.lineWidth = 10;
+        mainLayer.stroke();
+        mainLayer.fillStyle = this.state === "searching" ? "yellow" : this.state === "success" ? "limegreen" : "red";
+        mainLayer.fill();
+        mainLayer.closePath();
+        mainLayer.font = "30px serif";
+        mainLayer.fillStyle = "black";
+        mainLayer.textAlign = "center";
+        mainLayer.textBaseline = "middle";
+        mainLayer.fillText(this.number.toString(), x, y);
+    }
+    update() {
+        let step = this.simulation.step;
+        if ((this.state === "success" || this.state === "failed") && this.target !== null) {
+            if (this.x < 1000 + this.number % this.simulation.columns * 40) this.x += step;
+            if (this.y < 100 + Math.floor(this.number / this.simulation.rows) * 40) this.y += step;
+            if (this.y > 100 + Math.floor(this.number / this.simulation.rows) * 40) this.y -= step;
+        }
+        if (this.state === "searching") {
+            if (this.target !== null) {
+                let targetBox = this.simulation.boxes[this.target];
+                if (targetBox.x === this.x && targetBox.y === this.y) {
+                    this.count += 1;
+                    if (targetBox.contains === this.number) this.state = "success";
+                    if (this.count > this.simulation.rows * this.simulation.columns / 2) {
+                        console.log("should fail");
+                        this.state = "failed";
+                    }
+                    this.target = targetBox.contains;
+                }
+                if (targetBox.x > this.x) {
+                    this.x += step;
+                    return;
+                }
+                if (targetBox.x < this.x) {
+                    this.x -= step;
+                    return;
+                }
+                if (targetBox.y > this.y) {
+                    this.y += step;
+                    return;
+                }
+                if (targetBox.y < this.y) {
+                    this.y -= step;
+                    return;
+                }
+            }
+        }
+    }
+    constructor(number, simulation, target){
+        this.w = 30;
+        this.h = 30;
+        this.x = 0;
+        this.y = 300;
+        this.state = "searching";
+        this.count = 0;
+        this.simulation = simulation;
+        this.target = target;
+        this.number = number;
+    }
+}
 class App {
+    reset() {
+        this.simulation = new Simulation(this.layers, this.touchSurface, this.rows, this.columns);
+        this.layers[0].clear();
+        this.resetButtons();
+    }
+    assignButton(id, field) {
+        this[field] = document.getElementById(id);
+    }
     constructor(){
-        this.appState = new _appStateDefault.default();
-        this.canvas = new _canvasDefault.default(document.getElementById("canvas"));
-        this.main();
-        this.bodies = [
-            new Prisoner(this.canvas.context)
+        this.rows = 6;
+        this.columns = 6;
+        this.layers = [
+            new _canvasDefault.default(document.getElementById("canvas-0")),
+            new _canvasDefault.default(document.getElementById("canvas-1")), 
         ];
+        this.touchSurface = new _touchSurfaceDefault.default();
+        this.assignButton("addPrisonerButton", "addPrisoner");
+        this.assignButton("resetPrisonersButton", "resetPrisoners");
+        this.assignButton("newGameButton", "newGame");
+        this.assignButton("slowButton", "slowButton");
+        this.assignButton("fastButton", "fastButton");
+        this.assignButton("loopButton", "loopButton");
+        this.assignButton("randomButton", "randomButton");
+        this.reset();
+        this.loopButton.addEventListener("click", ()=>{
+            if (this.simulation.speed === 5) {
+                this.simulation.speed = 20;
+                this.slowButton.className = "active";
+                this.fastButton.className = "inactive";
+            }
+        });
+        this.fastButton.addEventListener("click", ()=>{
+            if (this.simulation.speed === 20) {
+                this.simulation.speed = 5;
+                this.slowButton.className = "inactive";
+                this.fastButton.className = "active";
+            }
+        });
+        this.slowButton.addEventListener("click", ()=>{
+            if (this.simulation.speed === 5) {
+                this.simulation.speed = 20;
+                this.slowButton.className = "active";
+                this.fastButton.className = "inactive";
+            }
+        });
+        this.fastButton.addEventListener("click", ()=>{
+            if (this.simulation.speed === 20) {
+                this.simulation.speed = 5;
+                this.slowButton.className = "inactive";
+                this.fastButton.className = "active";
+            }
+        });
+        this.resetPrisoners.addEventListener("click", ()=>{
+            this.layers[0].clear();
+            this.simulation.prisoners = [];
+            this.addPrisoner.innerText = `Add Prisoner (${this.simulation.prisoners.length}/${this.simulation.boxes.length})`;
+        });
+        this.addPrisoner.addEventListener("click", ()=>{
+            this.simulation.addPrisoner();
+            this.addPrisoner.innerText = `Add Prisoner (${this.simulation.prisoners.length}/${this.simulation.boxes.length})`;
+        });
+        this.newGame.addEventListener("click", ()=>{
+            this.simulation.shuttingDown = true;
+            this.reset();
+        });
+    }
+    resetButtons() {
+        this.addPrisoner.innerText = `Add Prisoner (${this.simulation.prisoners.length}/${this.simulation.boxes.length})`;
+        if (this.simulation.mode === "loop") {
+            this.slowButton.className = "inactive";
+            this.fastButton.className = "active";
+        } else {
+            this.slowButton.className = "active";
+            this.fastButton.className = "inactive";
+        }
+        if (this.simulation.speed === 5) {
+            this.slowButton.className = "inactive";
+            this.fastButton.className = "active";
+        } else {
+            this.slowButton.className = "active";
+            this.fastButton.className = "inactive";
+        }
+    }
+}
+class Simulation {
+    constructor(layers, touchSurface, rows, columns){
+        this.prisoners = [];
+        this.speed = 20;
+        this.shuttingDown = false;
+        this.selected = -1;
+        this.selectedOffset = {
+            x: 0,
+            y: 0
+        };
+        this.step = 4;
+        this.rows = rows;
+        this.columns = columns;
+        this.layers = layers;
+        this.touchSurface = touchSurface;
+        const templateArray = Array.from(Array(this.rows * this.columns)).map((item, index)=>index
+        );
+        const shuffled = shuffleArray([
+            ...templateArray
+        ]);
+        this.boxes = templateArray.map((item, index)=>{
+            let x = index % this.columns;
+            let y = Math.floor(index / this.rows);
+            return new Box(this.layers[1].context, index, shuffled[index], 500 + x * 80, 140 + y * 80);
+        });
+        touchSurface.onStart((event)=>{
+            let x, y;
+            x = event.pageX;
+            y = event.pageY;
+            this.selected = this.boxes.findIndex((box)=>{
+                return x > box.x && x < box.x + box.w && y > box.y && y < box.y + box.h;
+            });
+            let box1 = this.boxes[this.selected];
+            if (this.selected !== -1) this.selectedOffset = {
+                x: x - box1.x,
+                y: y - box1.y
+            };
+        });
+        touchSurface.onEnd((event)=>{
+            this.selected = -1;
+        });
+        touchSurface.onMove((event)=>{
+            if (this.selected !== -1) {
+                let x, y;
+                x = event.pageX - this.selectedOffset.x;
+                y = event.pageY - this.selectedOffset.y;
+                this.boxes[this.selected].x = Math.ceil(x / this.step) * 4;
+                this.boxes[this.selected].y = Math.ceil(y / this.step) * 4;
+            }
+        });
+        this.main();
+    }
+    addPrisoner() {
+        if (this.prisoners.length < this.boxes.length) this.prisoners.push(new Prisoner(this.prisoners.length, this, this.prisoners.length));
     }
     main() {
-        this.canvas.context.beginPath();
-        this.canvas.context.arc(100, 75, 30, 0, 2 * Math.PI);
-        this.canvas.context.stroke();
-        this.bodies.forEach((body)=>{
-            body.update();
-        });
-        this.bodies.forEach((body)=>{
-            body.draw();
-        });
+        this.tick();
     }
+    tick() {
+        if (this.shuttingDown) return;
+        else {
+            let bodies = [
+                ...this.boxes,
+                ...this.prisoners
+            ];
+            bodies.forEach((body)=>{
+                body.update();
+            });
+            this.layers[1].clear();
+            bodies.forEach((body)=>{
+                body.draw();
+            });
+            setTimeout(()=>{
+                this.tick();
+            }, this.speed);
+        }
+    }
+}
+function shuffleArray(array) {
+    for(let i = array.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [
+            array[j],
+            array[i]
+        ];
+    }
+    return array;
 }
 exports.default = App;
 
-},{"./Canvas":"gZHIn","./AppState":"g8xz7","@parcel/transformer-js/src/esmodule-helpers.js":"akIfY"}],"gZHIn":[function(require,module,exports) {
+},{"./Canvas":"gZHIn","@parcel/transformer-js/src/esmodule-helpers.js":"akIfY","./TouchSurface":"3aGgT"}],"gZHIn":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 class Canvas {
@@ -574,9 +825,8 @@ class Canvas {
         this.canvas.height = this.canvasHeight();
         // window resize listener to reset canvases
         let isResizing = false;
-        let lastResizeTimeout // closure to keep track of last timeout so it can be canceled
-        ;
-        window.addEventListener('resize', (e)=>{
+        let lastResizeTimeout; // closure to keep track of last timeout so it can be canceled
+        window.addEventListener("resize", (e)=>{
             if (isResizing) {
                 clearTimeout(lastResizeTimeout);
                 lastResizeTimeout = setTimeout(()=>{
@@ -585,6 +835,9 @@ class Canvas {
                 }, 100);
             } else isResizing = true;
         });
+    }
+    clear() {
+        this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
     canvasWidth() {
         return window.innerWidth;
@@ -630,43 +883,47 @@ exports.export = function(dest, destName, get) {
     });
 };
 
-},{}],"g8xz7":[function(require,module,exports) {
+},{}],"3aGgT":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
-class AppState {
-    getState() {
-        return this.state;
-    }
-    setState(update) {
-        let merged = {
-            ...this.getState(),
-            ...update
-        };
-        this.handlers.forEach((callback)=>{
-            callback(merged);
-        });
-        this.state = merged;
-    }
+class TouchSurface {
     constructor(){
-        this.state = {
-            debugMode: false,
-            perciseArrows: true,
-            showArrows: true,
-            drawMode: false,
-            saving: false,
-            testMode: false,
-            lastPath: [],
-            lastSelection: [],
-            lastScroll: 0,
-            lastGesture: 'empty'
-        };
-        this.handlers = [];
-        this.addCallback = (callback)=>{
-            this.handlers.push(callback);
-        };
+        this.touchElement = document.getElementById("touch-surface");
+    }
+    onStart(handler) {
+        for (const ev of [
+            "touchstart",
+            "mousedown"
+        ])this.touchElement.addEventListener(ev, handler);
+    }
+    onMove(handler) {
+        for (const ev of [
+            "touchmove",
+            "mousemove"
+        ])this.touchElement.addEventListener(ev, handler);
+    }
+    onEnd(handler) {
+        for (const ev of [
+            "touchend",
+            "mouseup"
+        ])this.touchElement.addEventListener(ev, handler);
+    }
+    doOverlap(l1, r1, l2, r2) {
+        // To check if either rectangle is actually a line
+        // For example : l1 ={-1,0} r1={1,1} l2={0,-1} r2={0,1}
+        if (l1.x == r1.x || l1.y == r1.y || l2.x == r2.x || l2.y == r2.y) // the line cannot have positive overlap
+        return false;
+        // If one rectangle is on left side of other
+        if (l1.x >= r2.x || l2.x >= r1.x) // console.log("to left")
+        return false;
+        // If one rectangle is above other
+        // signs flipped because coordinates are top down
+        if (r1.y <= l2.y + 10 || r2.y <= l1.y + 10) // console.log("above")
+        return false;
+        return true;
     }
 }
-exports.default = AppState;
+exports.default = TouchSurface;
 
 },{"@parcel/transformer-js/src/esmodule-helpers.js":"akIfY"}]},["j2fTq","7SrOl"], "7SrOl", "parcelRequire94c2")
 
